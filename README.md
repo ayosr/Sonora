@@ -17,8 +17,7 @@ all wired up so the same app can run against a real backend.
 Two ways, depending on what you need.
 
 **No build step.** Open `sonora-standalone.html` in a browser. It is the whole
-app in one file, using the Vue 3 global build from a CDN. Good for a quick look
-or for handing someone a link.
+app in one file, using the Vue 3 global build from a CDN. Good for a quick look.
 
 **The real project.**
 
