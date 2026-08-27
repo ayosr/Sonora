@@ -1,0 +1,1154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Sonora is a local-first music library: import audio files, organize them, play them." />
+    <meta name="theme-color" content="#ececee" />
+    <title>Sonora</title>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --ink: #1c1c1f;
+  --ink-soft: #64646c;
+  --ink-faint: #95959c;
+  --glass: rgba(248, 248, 249, 0.55);
+  --glass-strong: rgba(248, 248, 249, 0.76);
+  --glass-quiet: rgba(248, 248, 249, 0.34);
+  --edge: rgba(255, 255, 255, 0.78);
+  --accent: #4b4c53;
+  --accent-2: #77787f;
+  --accent-3: #a3a4aa;
+  --shadow: 0 18px 48px -22px rgba(20, 20, 22, 0.42);
+  --shadow-lift: 0 26px 60px -22px rgba(20, 20, 22, 0.5);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --r: 22px;
+  --level: 0;
+  --display: 'Bricolage Grotesque', 'Trebuchet MS', system-ui, sans-serif;
+  --body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--body);
+  color: var(--ink);
+  background: linear-gradient(168deg, #ececed 0%, #f2f2f3 46%, #ececee 100%);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- signature: the light field behind the glass ---------- */
+
+.field { position: fixed; inset: -18vmax; z-index: 0; pointer-events: none; }
+
+.field b {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.72;
+  transform: scale(calc(1 + var(--level) * 0.34));
+  transition: transform 140ms var(--ease);
+  will-change: transform;
+}
+
+.field b:nth-child(1) {
+  width: 46vmax; height: 46vmax; left: 4%; top: 2%;
+  background: radial-gradient(circle at 35% 35%, #c6c7cb, #a3a4aa 55%, transparent 72%);
+  animation: drift-a 26s var(--ease) infinite;
+}
+.field b:nth-child(2) {
+  width: 40vmax; height: 40vmax; right: 2%; top: 12%;
+  background: radial-gradient(circle at 60% 40%, #d4d5d8, #b6b7bc 52%, transparent 72%);
+  animation: drift-b 31s var(--ease) infinite;
+}
+.field b:nth-child(3) {
+  width: 44vmax; height: 44vmax; left: 26%; bottom: -6%;
+  background: radial-gradient(circle at 50% 50%, #dcdddf, #bfc0c4 52%, transparent 74%);
+  animation: drift-c 37s var(--ease) infinite;
+}
+
+@keyframes drift-a { 50% { translate: 12vmax 8vmax; } }
+@keyframes drift-b { 50% { translate: -14vmax 10vmax; } }
+@keyframes drift-c { 50% { translate: 9vmax -11vmax; } }
+
+/* ---------- glass primitives ---------- */
+
+.glass {
+  position: relative;
+  z-index: 1;
+  background: var(--glass);
+  backdrop-filter: blur(26px) saturate(1.7);
+  -webkit-backdrop-filter: blur(26px) saturate(1.7);
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- shell ---------- */
+
+.app {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  height: 100dvh;
+  padding: 14px;
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: 274px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+/* ---------- header ---------- */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+}
+
+.mark {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 21px;
+  letter-spacing: -0.03em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.mark i {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 0 4px rgba(28, 28, 31, 0.14);
+  animation: pulse 2.6s var(--spring) infinite;
+}
+
+@keyframes pulse { 50% { transform: scale(1.35); } }
+
+.search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 14px;
+  border-radius: 14px;
+  background: var(--glass-quiet);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition: transform 260ms var(--spring), background 200ms;
+}
+.search:focus-within { transform: scale(1.015); background: var(--glass-strong); }
+.search input {
+  flex: 1; min-width: 0; border: 0; background: none; outline: none;
+  font: 500 14px var(--body); color: var(--ink);
+}
+.search input::placeholder { color: var(--ink-faint); }
+
+/* ---------- buttons ---------- */
+
+.btn {
+  font: 600 13.5px var(--body);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  background: var(--glass-strong);
+  border-radius: 13px;
+  padding: 9px 15px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: transform 320ms var(--spring), box-shadow 260ms var(--ease), background 200ms;
+}
+.btn:hover { transform: translateY(-2px) scale(1.04); box-shadow: var(--shadow-lift); }
+.btn:active { transform: scale(0.94); }
+.btn.primary {
+  background: linear-gradient(140deg, var(--accent), #26262a);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 12px 26px -12px rgba(28, 28, 31, 0.55);
+}
+
+.icon {
+  width: 38px; height: 38px; display: grid; place-items: center;
+  border-radius: 50%; border: 1px solid var(--edge);
+  background: var(--glass-strong); color: var(--ink); cursor: pointer;
+  transition: transform 320ms var(--spring), background 200ms;
+}
+.icon:hover { transform: scale(1.14); }
+.icon:active { transform: scale(0.88); }
+.icon.ghost { border-color: transparent; background: none; }
+.icon.big {
+  width: 52px; height: 52px;
+  background: linear-gradient(140deg, var(--accent), #26262a);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 14px 30px -12px rgba(28, 28, 31, 0.6);
+}
+.icon svg { width: 17px; height: 17px; fill: currentColor; }
+.icon.big svg { width: 21px; height: 21px; }
+
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; }
+
+/* ---------- sidebar ---------- */
+
+.side { padding: 14px; overflow: auto; display: flex; flex-direction: column; gap: 18px; }
+
+.eyebrow {
+  font: 500 10.5px var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 9px 4px;
+}
+
+.nav { display: flex; flex-direction: column; gap: 3px; }
+
+.nav button {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 12px; border: 0; border-radius: 13px; cursor: pointer;
+  background: none; color: var(--ink-soft);
+  font: 500 14px var(--body); text-align: left;
+  transition: transform 300ms var(--spring), background 180ms, color 180ms;
+}
+.nav button:hover { background: var(--glass-quiet); transform: translateX(4px); }
+.nav button.on {
+  background: var(--glass-strong); color: var(--ink); font-weight: 600;
+  box-shadow: 0 6px 18px -10px rgba(27, 29, 42, 0.5);
+}
+.nav button .n { margin-left: auto; font: 400 11.5px var(--mono); color: var(--ink-faint); }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.tag {
+  font: 500 12px var(--body);
+  padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: var(--glass-quiet); color: var(--ink-soft);
+  transition: transform 300ms var(--spring), background 180ms, color 180ms;
+}
+.tag:hover { transform: translateY(-2px) scale(1.06); }
+.tag.on { background: var(--ink); color: #fff; border-color: transparent; }
+
+.drop {
+  margin-top: auto;
+  border: 1.5px dashed rgba(28, 28, 31, 0.32);
+  border-radius: 18px; padding: 18px 14px; text-align: center;
+  background: var(--glass-quiet); cursor: pointer;
+  transition: transform 340ms var(--spring), background 200ms, border-color 200ms;
+}
+.drop:hover, .drop.hot { transform: scale(1.03); border-color: var(--accent); background: var(--glass-strong); }
+.drop p { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+.drop strong { display: block; font-family: var(--display); font-size: 15px; letter-spacing: -0.01em; }
+
+/* ---------- list ---------- */
+
+.list { padding: 4px 4px 4px 0; overflow: auto; min-height: 0; }
+
+.list-head {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 14px 18px 10px;
+  position: sticky; top: 0; z-index: 2;
+  border-radius: var(--r) var(--r) 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(255, 255, 255, 0.24));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.list-head h1 {
+  margin: 0; font-family: var(--display);
+  font-size: clamp(26px, 3.4vw, 38px); font-weight: 700; letter-spacing: -0.035em;
+}
+.list-head span { font: 400 12px var(--mono); color: var(--ink-faint); }
+.sorts { margin-left: auto; display: flex; gap: 4px; }
+.sorts button {
+  font: 500 11.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase;
+  border: 0; background: none; color: var(--ink-faint); cursor: pointer;
+  padding: 5px 9px; border-radius: 9px;
+  transition: transform 300ms var(--spring), background 180ms, color 180ms;
+}
+.sorts button:hover { transform: translateY(-2px); color: var(--ink); }
+.sorts button.on { background: var(--ink); color: #fff; }
+
+.rows { display: flex; flex-direction: column; gap: 5px; padding: 0 12px 14px; }
+
+.row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) minmax(0, 0.7fr) 56px auto;
+  align-items: center; gap: 12px;
+  padding: 9px 12px; border-radius: 16px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 320ms var(--spring), background 200ms, box-shadow 260ms;
+  animation: rise 460ms var(--spring) both;
+}
+.row:hover {
+  background: var(--glass-strong); border-color: var(--edge);
+  transform: translateX(6px) scale(1.006); box-shadow: var(--shadow);
+}
+.row.playing { background: var(--glass-strong); border-color: var(--edge); box-shadow: var(--shadow); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+
+.art {
+  width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  font: 700 14px var(--display); color: #fff; position: relative; overflow: hidden;
+  transition: transform 320ms var(--spring);
+}
+.row:hover .art { transform: rotate(-6deg) scale(1.1); }
+
+.t-main { min-width: 0; }
+.t-title {
+  font-weight: 600; font-size: 14.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.t-sub {
+  font-size: 12.5px; color: var(--ink-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.t-album {
+  font-size: 12.5px; color: var(--ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.t-dur { font: 400 12.5px var(--mono); color: var(--ink-faint); text-align: right; }
+
+.row-acts { display: flex; gap: 2px; opacity: 0; transition: opacity 180ms; }
+.row:hover .row-acts, .row:focus-within .row-acts { opacity: 1; }
+.row-acts .icon { width: 30px; height: 30px; }
+.row-acts .icon svg { width: 14px; height: 14px; }
+
+.bars { display: flex; gap: 2px; align-items: flex-end; height: 15px; }
+.bars i { width: 3px; border-radius: 2px; background: var(--accent); animation: eq 900ms var(--ease) infinite alternate; }
+.bars i:nth-child(1) { height: 60%; animation-delay: -300ms; }
+.bars i:nth-child(2) { height: 100%; animation-delay: -600ms; }
+.bars i:nth-child(3) { height: 40%; }
+@keyframes eq { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+
+.empty { padding: 60px 24px; text-align: center; color: var(--ink-soft); }
+.empty h2 { font-family: var(--display); font-size: 24px; letter-spacing: -0.03em; margin: 0 0 6px; }
+.empty p { margin: 0 0 18px; font-size: 14px; }
+
+/* ---------- player ---------- */
+
+.player { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 16px; align-items: center; padding: 12px 16px; }
+
+.now { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.disc {
+  width: 46px; height: 46px; border-radius: 50%; position: relative; flex: none;
+  display: grid; place-items: center; color: #fff;
+  font: 700 15px var(--display);
+  box-shadow: 0 10px 24px -12px rgba(27, 29, 42, 0.7);
+}
+.disc.spin { animation: spin 7s linear infinite; }
+.disc::after {
+  content: ''; position: absolute; width: 24%; height: 24%; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.controls { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.buttons { display: flex; align-items: center; gap: 8px; }
+
+.seek { display: flex; align-items: center; gap: 9px; width: min(46vw, 440px); }
+.seek time { font: 400 11px var(--mono); color: var(--ink-faint); }
+
+.track {
+  flex: 1; height: 5px; border-radius: 99px; cursor: pointer;
+  background: rgba(27, 29, 42, 0.12); position: relative;
+  transition: height 240ms var(--spring);
+}
+.track:hover { height: 9px; }
+.track > i {
+  position: absolute; inset: 0 auto 0 0; border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.track > i::after {
+  content: ''; position: absolute; right: -5px; top: 50%; translate: 0 -50%;
+  width: 11px; height: 11px; border-radius: 50%; background: #fff;
+  box-shadow: 0 2px 8px rgba(27, 29, 42, 0.4);
+  transform: scale(0); transition: transform 300ms var(--spring);
+}
+.track:hover > i::after { transform: scale(1); }
+
+.meters { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+canvas.spectrum { width: 132px; height: 34px; }
+.vol { width: 88px; accent-color: var(--accent); }
+
+/* ---------- editor sheet ---------- */
+
+.veil {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: rgba(27, 29, 42, 0.24); backdrop-filter: blur(6px); padding: 20px;
+  animation: fade 200ms var(--ease);
+}
+@keyframes fade { from { opacity: 0; } }
+
+.sheet {
+  width: min(420px, 100%); padding: 22px; display: flex; flex-direction: column; gap: 12px;
+  background: var(--glass-strong);
+  animation: pop 380ms var(--spring);
+}
+@keyframes pop { from { opacity: 0; transform: translateY(24px) scale(0.94); } }
+.sheet h2 { margin: 0; font-family: var(--display); font-size: 21px; letter-spacing: -0.03em; }
+
+.field-row { display: flex; flex-direction: column; gap: 5px; }
+.field-row label { font: 500 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.field-row input {
+  border: 1px solid var(--edge); background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px; padding: 10px 13px; font: 500 14px var(--body); color: var(--ink);
+  outline: none; transition: transform 260ms var(--spring), border-color 180ms;
+}
+.field-row input:focus { transform: scale(1.015); border-color: var(--accent); }
+.sheet-acts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 108px; translate: -50% 0; z-index: 30;
+  padding: 10px 18px; border-radius: 999px; font: 500 13px var(--body);
+  background: var(--ink); color: #fff;
+  animation: pop 380ms var(--spring);
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 860px) {
+  .stage { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .side { flex-direction: row; align-items: flex-start; gap: 14px; overflow-x: auto; }
+  .side > * { flex: none; }
+  .drop { margin-top: 0; min-width: 190px; }
+  .row { grid-template-columns: 40px minmax(0, 1fr) 50px auto; }
+  .t-album { display: none; }
+  .player { grid-template-columns: 1fr; gap: 10px; }
+  .meters { display: none; }
+  .seek { width: 100%; }
+  .list-head h1 { font-size: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.playlist-input {
+  margin-top: 6px; width: 100%; border: 1px solid var(--edge);
+  background: rgba(255, 255, 255, 0.6); border-radius: 12px; padding: 8px 12px;
+  font: 500 13.5px var(--body); color: var(--ink); outline: none;
+}
+
+    </style>
+  </head>
+  <body>
+    <div id="app">
+    <div
+      class="app"
+      :style="{ '--level': level }"
+      @dragover.prevent="hot = true"
+      @dragleave="hot = false"
+      @drop.prevent="onDrop"
+    >
+      <div class="field" aria-hidden="true"><b></b><b></b><b></b></div>
+
+      <!-- header -->
+      <header class="bar glass">
+        <div class="mark"><i></i> Sonora</div>
+        <label class="search">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:var(--ink-faint)"><path d="M10 4a6 6 0 104.5 9.9l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"/></svg>
+          <input v-model="query" type="search" placeholder="Search titles, artists, albums, tags" />
+        </label>
+        <button class="btn primary" @click="$refs.picker.click()">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5z"/></svg>
+          Add music
+        </button>
+      </header>
+
+      <div class="stage">
+        <!-- sidebar -->
+        <aside class="side glass">
+          <div>
+            <p class="eyebrow">Library</p>
+            <nav class="nav">
+              <button :class="{ on: collection === 'all' }" @click="collection = 'all'">
+                All tracks <span class="n">{{ tracks.length }}</span>
+              </button>
+              <button :class="{ on: collection === 'recent' }" @click="collection = 'recent'">
+                Recently added
+              </button>
+              <button :class="{ on: collection === 'favorites' }" @click="collection = 'favorites'">
+                Favorites <span class="n">{{ favoriteCount }}</span>
+              </button>
+            </nav>
+          </div>
+
+          <div>
+            <p class="eyebrow">Playlists</p>
+            <nav class="nav">
+              <button v-for="p in playlists" :key="p.id" :class="{ on: collection === p.id }" @click="collection = p.id">
+                {{ p.name }} <span class="n">{{ p.trackIds.length }}</span>
+              </button>
+              <button v-if="!naming" @click="naming = true">+ New playlist</button>
+            </nav>
+            <input
+              v-if="naming"
+              ref="nameInput"
+              v-model="newName"
+              class="playlist-input"
+              placeholder="Name it, then press Enter"
+              @keyup.enter="submitPlaylist"
+              @blur="submitPlaylist"
+            />
+          </div>
+
+          <div v-if="tagList.length">
+            <p class="eyebrow">Tags</p>
+            <div class="tags">
+              <button
+                v-for="t in tagList"
+                :key="t.name"
+                class="tag"
+                :class="{ on: tag === t.name }"
+                @click="tag = tag === t.name ? null : t.name"
+              >{{ t.name }} · {{ t.count }}</button>
+            </div>
+          </div>
+
+          <div class="drop" :class="{ hot }" @click="$refs.picker.click()">
+            <strong>Drop files here</strong>
+            <p>MP3, WAV, FLAC, M4A, OGG. Nothing leaves this device.</p>
+          </div>
+        </aside>
+
+        <!-- track list -->
+        <section class="list glass">
+          <div class="list-head">
+            <h1>{{ heading }}</h1>
+            <span>{{ visible.length }} {{ visible.length === 1 ? 'track' : 'tracks' }}</span>
+            <div class="sorts">
+              <button v-for="(label, key) in sortLabels" :key="key" :class="{ on: sort === key }" @click="sort = key">
+                {{ label }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="visible.length" class="rows">
+            <div
+              v-for="(t, i) in visible"
+              :key="t.id"
+              class="row"
+              :class="{ playing: current && current.id === t.id }"
+              :style="{ animationDelay: Math.min(i, 14) * 22 + 'ms' }"
+              tabindex="0"
+              role="button"
+              :aria-label="'Play ' + t.title + ' by ' + t.artist"
+              @click="playAt(i)"
+              @keyup.enter="playAt(i)"
+            >
+              <div class="art" :style="{ background: cover(t) }">
+                <div v-if="current && current.id === t.id && playing" class="bars"><i></i><i></i><i></i></div>
+                <span v-else>{{ initial(t.title) }}</span>
+              </div>
+
+              <div class="t-main">
+                <div class="t-title">{{ t.title }}</div>
+                <div class="t-sub">{{ t.artist }}<template v-if="t.tags.length"> · {{ t.tags.join(', ') }}</template></div>
+              </div>
+
+              <div class="t-album">{{ t.album }}</div>
+              <div class="t-dur">{{ time(t.duration) }}</div>
+
+              <div class="row-acts" @click.stop>
+                <button class="icon ghost" :title="t.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                        :style="{ color: t.favorite ? 'var(--accent-2)' : 'var(--ink-faint)' }" @click="toggleFavorite(t.id)">
+                  <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.3-9A5 5 0 0112 5.6 5 5 0 0121.3 12c-1.8 4.3-9.3 9-9.3 9z"/></svg>
+                </button>
+                <button class="icon ghost" title="Edit details" style="color:var(--ink-faint)" @click="openEditor(t)">
+                  <svg viewBox="0 0 24 24"><path d="M4 17.2V20h2.8L17 9.8 14.2 7 4 17.2zM19.7 6.3l-2-2a1 1 0 00-1.4 0L15 5.6 17.8 8.4 19.7 7a1 1 0 000-.7z"/></svg>
+                </button>
+                <button v-if="isPlaylist" class="icon ghost" title="Remove from playlist" style="color:var(--ink-faint)"
+                        @click="removeFromPlaylist(t.id)">
+                  <svg viewBox="0 0 24 24"><path d="M5 11h14v2H5z"/></svg>
+                </button>
+                <button v-else-if="playlists.length" class="icon ghost" title="Add to a playlist" style="color:var(--ink-faint)"
+                        @click="adding = t">
+                  <svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/></svg>
+                </button>
+                <button class="icon ghost" title="Remove from library" style="color:var(--ink-faint)" @click="removeTrack(t.id)">
+                  <svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zM6 9h12l-1 12H7L6 9z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="empty">
+            <h2>{{ tracks.length ? 'Nothing matches that' : 'Your library is empty' }}</h2>
+            <p v-if="tracks.length">Try a different search, tag or collection.</p>
+            <p v-else>Add a few files to get started. They stay on your machine.</p>
+            <button v-if="!tracks.length" class="btn primary" @click="$refs.picker.click()">Choose files</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- player -->
+      <footer class="player glass">
+        <div class="now">
+          <div class="disc" :class="{ spin: playing }"
+               :style="{ background: current ? cover(current) : 'linear-gradient(140deg,#d6d6d9,#ececee)' }">
+            <span v-if="!playing">{{ current ? initial(current.title) : '' }}</span>
+          </div>
+          <div style="min-width:0">
+            <div class="t-title">{{ current ? current.title : 'Nothing playing' }}</div>
+            <div class="t-sub">{{ current ? current.artist : 'Pick a track to start' }}</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="buttons">
+            <button class="icon ghost" title="Shuffle" :style="{ color: shuffle ? 'var(--accent)' : 'var(--ink-faint)' }"
+                    @click="shuffle = !shuffle">
+              <svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4V8h-2.2l-2 3-1.2-1.8L13.7 6H17V3zM3 6h4.3l7 10H17v-3l4 4-4 4v-3h-3.7L6.3 8H3V6zm0 10h4.3l1.6-2.3 1.2 1.8L8.3 18H3v-2z"/></svg>
+            </button>
+            <button class="icon" title="Previous" @click="prev">
+              <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3 6 9-6v12z"/></svg>
+            </button>
+            <button class="icon big" :title="playing ? 'Pause' : 'Play'" @click="toggle">
+              <svg v-if="playing" viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+              <svg v-else viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="icon" title="Next" @click="next()">
+              <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l9 6-9 6z"/></svg>
+            </button>
+            <button class="icon ghost" :title="repeatLabel" :style="{ color: repeat === 'off' ? 'var(--ink-faint)' : 'var(--accent)' }"
+                    @click="cycleRepeat">
+              <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+            </button>
+          </div>
+          <div class="seek">
+            <time>{{ time(position) }}</time>
+            <div class="track" role="slider" aria-label="Seek" :aria-valuenow="Math.round(progress * 100)"
+                 aria-valuemin="0" aria-valuemax="100" @click="onSeek">
+              <i :style="{ width: (progress * 100).toFixed(2) + '%' }"></i>
+            </div>
+            <time>{{ time(duration) }}</time>
+          </div>
+        </div>
+
+        <div class="meters">
+          <canvas ref="scope" class="spectrum" aria-hidden="true"></canvas>
+          <input class="vol" type="range" min="0" max="1" step="0.01" :value="volume" aria-label="Volume"
+                 @input="setVolume($event.target.value)" />
+        </div>
+      </footer>
+
+      <!-- edit sheet -->
+      <div v-if="editing" class="veil" @click.self="editing = null">
+        <div class="sheet glass" role="dialog" aria-modal="true" aria-label="Edit track details">
+          <h2>Edit details</h2>
+          <div class="field-row"><label>Title</label><input v-model="draft.title" /></div>
+          <div class="field-row"><label>Artist</label><input v-model="draft.artist" /></div>
+          <div class="field-row"><label>Album</label><input v-model="draft.album" /></div>
+          <div class="field-row"><label>Tags</label><input v-model="draft.tags" placeholder="focus, jazz, late night" /></div>
+          <div class="sheet-acts">
+            <button class="btn" @click="editing = null">Cancel</button>
+            <button class="btn primary" @click="saveEdit">Save changes</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- playlist picker -->
+      <div v-if="adding" class="veil" @click.self="adding = null">
+        <div class="sheet glass" role="dialog" aria-modal="true" aria-label="Add to a playlist">
+          <h2>Add to a playlist</h2>
+          <nav class="nav">
+            <button v-for="p in playlists" :key="p.id" @click="addToPlaylist(p.id)">
+              {{ p.name }} <span class="n">{{ p.trackIds.length }}</span>
+            </button>
+          </nav>
+          <div class="sheet-acts"><button class="btn" @click="adding = null">Close</button></div>
+        </div>
+      </div>
+
+      <div v-if="toast" class="toast">{{ toast }}</div>
+
+      <input ref="picker" type="file" accept="audio/*" multiple hidden
+             @change="onFiles($event.target.files); $event.target.value = ''" />
+    </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+    <script>
+      const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue
+
+      /* ---------- pure helpers (mirrors src/utils) ---------- */
+
+      function time(seconds) {
+        const total = Math.max(0, Math.floor(Number(seconds) || 0))
+        const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60
+        const pad = (n) => String(n).padStart(2, '0')
+        return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
+      }
+
+      function parseFilename(filename) {
+        const base = String(filename).replace(/\.[a-z0-9]+$/i, '')
+        const clean = base.replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim()
+        const noIndex = clean.replace(/^\d{1,3}\s*[-.)]\s*/, '')
+        const parts = noIndex.split(/\s+-\s+/)
+        if (parts.length >= 2) return { artist: parts[0].trim(), title: parts.slice(1).join(' - ').trim() }
+        return { artist: 'Unknown artist', title: noIndex || 'Untitled' }
+      }
+
+      function parseTags(input) {
+        const raw = Array.isArray(input) ? input : String(input || '').split(',')
+        const seen = new Set(), out = []
+        for (const item of raw) {
+          const t = String(item).trim().toLowerCase()
+          if (t && !seen.has(t)) { seen.add(t); out.push(t) }
+        }
+        return out
+      }
+
+      function hueFor(text) {
+        let hash = 0
+        for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) % 360
+        return hash
+      }
+
+      function nextIndex(length, current, { shuffle = false, repeat = 'off', random = Math.random } = {}) {
+        if (length <= 0) return null
+        if (repeat === 'one') return current
+        if (shuffle) {
+          if (length === 1) return 0
+          let pick = current
+          while (pick === current) pick = Math.floor(random() * length)
+          return pick
+        }
+        const next = current + 1
+        if (next < length) return next
+        return repeat === 'all' ? 0 : null
+      }
+
+      /* ---------- IndexedDB with a memory fallback ---------- */
+
+      const memory = { tracks: new Map(), files: new Map(), meta: new Map() }
+      let dbPromise = null
+
+      function openDb() {
+        if (dbPromise) return dbPromise
+        dbPromise = new Promise((resolve) => {
+          try {
+            if (!window.indexedDB) return resolve(null)
+            const req = indexedDB.open('sonora', 1)
+            req.onupgradeneeded = () => {
+              const db = req.result
+              if (!db.objectStoreNames.contains('tracks')) db.createObjectStore('tracks', { keyPath: 'id' })
+              if (!db.objectStoreNames.contains('files')) db.createObjectStore('files')
+              if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta')
+            }
+            req.onsuccess = () => resolve(req.result)
+            req.onerror = () => resolve(null)
+            req.onblocked = () => resolve(null)
+          } catch { resolve(null) }
+        })
+        return dbPromise
+      }
+
+      function run(store, mode, fn, fallback) {
+        return openDb().then((db) => new Promise((resolve) => {
+          if (!db) return resolve(fallback())
+          try {
+            const tx = db.transaction(store, mode)
+            const req = fn(tx.objectStore(store))
+            tx.onerror = () => resolve(fallback())
+            if (req) { req.onsuccess = () => resolve(req.result); req.onerror = () => resolve(fallback()) }
+            else tx.oncomplete = () => resolve(true)
+          } catch { resolve(fallback()) }
+        }))
+      }
+
+      const db = {
+        allTracks: () => run('tracks', 'readonly', (s) => s.getAll(), () => [...memory.tracks.values()]).then((r) => r || []),
+        putTrack: (t) => { memory.tracks.set(t.id, t); return run('tracks', 'readwrite', (s) => s.put(JSON.parse(JSON.stringify(t))), () => true) },
+        delTrack: (id) => { memory.tracks.delete(id); return run('tracks', 'readwrite', (s) => s.delete(id), () => true) },
+        putFile: (id, blob) => { memory.files.set(id, blob); return run('files', 'readwrite', (s) => s.put(blob, id), () => true) },
+        getFile: (id) => run('files', 'readonly', (s) => s.get(id), () => memory.files.get(id)),
+        delFile: (id) => { memory.files.delete(id); return run('files', 'readwrite', (s) => s.delete(id), () => true) },
+        getMeta: (k) => run('meta', 'readonly', (s) => s.get(k), () => memory.meta.get(k)),
+        putMeta: (k, v) => { memory.meta.set(k, v); return run('meta', 'readwrite', (s) => s.put(JSON.parse(JSON.stringify(v)), k), () => true) },
+      }
+
+      /* ---------- app ---------- */
+
+      createApp({
+        setup() {
+          const tracks = ref([])
+          const playlists = ref([])
+          const query = ref('')
+          const collection = ref('all')
+          const tag = ref(null)
+          const sort = ref('added')
+          const hot = ref(false)
+          const toast = ref('')
+          const naming = ref(false)
+          const newName = ref('')
+          const editing = ref(null)
+          const adding = ref(null)
+          const draft = reactive({ title: '', artist: '', album: '', tags: '' })
+          const scope = ref(null)
+          const nameInput = ref(null)
+
+          const urls = new Map()
+          const sortLabels = { added: 'Added', title: 'Title', artist: 'Artist', duration: 'Length' }
+
+          /* --- player state --- */
+          const audio = new Audio()
+          audio.preload = 'metadata'
+          const index = ref(-1)
+          const currentId = ref(null)
+          const playing = ref(false)
+          const position = ref(0)
+          const duration = ref(0)
+          const volume = ref(0.85)
+          const shuffle = ref(false)
+          const repeat = ref('off')
+          const level = ref(0)
+          let ctx = null, analyser = null, bins = null, raf = 0
+
+          const playlistMap = computed(() => Object.fromEntries(playlists.value.map((p) => [p.id, p.trackIds])))
+          const favoriteCount = computed(() => tracks.value.filter((t) => t.favorite).length)
+          const isPlaylist = computed(() => playlists.value.some((p) => p.id === collection.value))
+
+          const visible = computed(() => {
+            let out = tracks.value.slice()
+            if (collection.value === 'favorites') out = out.filter((t) => t.favorite)
+            else if (collection.value === 'recent') out = out.sort((a, b) => b.addedAt - a.addedAt).slice(0, 25)
+            else if (collection.value !== 'all') {
+              const ids = new Set(playlistMap.value[collection.value] || [])
+              out = out.filter((t) => ids.has(t.id))
+            }
+            if (tag.value) out = out.filter((t) => t.tags.includes(tag.value))
+            const q = query.value.trim().toLowerCase()
+            if (q) out = out.filter((t) => [t.title, t.artist, t.album, ...t.tags].join(' ').toLowerCase().includes(q))
+
+            if (sort.value === 'title' || sort.value === 'artist') {
+              return out.sort((a, b) => String(a[sort.value]).localeCompare(String(b[sort.value]), undefined, { sensitivity: 'base' }))
+            }
+            if (sort.value === 'duration') return out.sort((a, b) => b.duration - a.duration)
+            return out.sort((a, b) => b.addedAt - a.addedAt)
+          })
+
+          const tagList = computed(() => {
+            const counts = new Map()
+            for (const t of tracks.value) for (const x of t.tags) counts.set(x, (counts.get(x) || 0) + 1)
+            return [...counts.entries()].map(([name, count]) => ({ name, count }))
+              .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+          })
+
+          const current = computed(() => tracks.value.find((t) => t.id === currentId.value) || null)
+          const progress = computed(() => (duration.value ? position.value / duration.value : 0))
+          const heading = computed(() => {
+            if (tag.value) return '#' + tag.value
+            if (collection.value === 'favorites') return 'Favorites'
+            if (collection.value === 'recent') return 'Recently added'
+            const p = playlists.value.find((x) => x.id === collection.value)
+            return p ? p.name : 'All tracks'
+          })
+          const repeatLabel = computed(() =>
+            repeat.value === 'one' ? 'Repeat one' : repeat.value === 'all' ? 'Repeat all' : 'Repeat off')
+
+          function say(message) {
+            toast.value = message
+            clearTimeout(say.timer)
+            say.timer = setTimeout(() => (toast.value = ''), 2600)
+          }
+
+          const cover = (t) => {
+            const h = hueFor((t.title || '') + (t.artist || ''))
+            const l1 = 58 + (h % 18), l2 = 34 + (h % 14)
+            return `linear-gradient(140deg, hsl(${h} 6% ${l1}%), hsl(${(h + 48) % 360} 6% ${l2}%))`
+          }
+          const initial = (text) => (String(text).trim().charAt(0) || '?').toUpperCase()
+
+          /* --- import --- */
+
+          function readDuration(url) {
+            return new Promise((resolve) => {
+              const probe = new Audio()
+              const done = (v) => { probe.src = ''; resolve(v) }
+              probe.preload = 'metadata'
+              probe.onloadedmetadata = () => done(Number.isFinite(probe.duration) ? probe.duration : 0)
+              probe.onerror = () => done(0)
+              setTimeout(() => done(0), 6000)
+              probe.src = url
+            })
+          }
+
+          async function onFiles(fileList) {
+            if (!fileList || !fileList.length) return
+            const all = [...fileList]
+            const files = all.filter((f) => f.type.startsWith('audio/') || /\.(mp3|m4a|aac|wav|flac|ogg|oga|opus|webm)$/i.test(f.name))
+            if (!files.length) { say(`Skipped ${all.length} ${all.length === 1 ? 'file' : 'files'}. Audio only.`); return }
+
+            const added = []
+            for (const file of files) {
+              const id = 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8)
+              urls.set(id, URL.createObjectURL(file))
+              const guess = parseFilename(file.name)
+              const track = {
+                id, title: guess.title, artist: guess.artist, album: 'Imported',
+                tags: [], favorite: false, size: file.size, filename: file.name,
+                addedAt: Date.now(), duration: await readDuration(urls.get(id)),
+              }
+              await db.putFile(id, file)
+              await db.putTrack(track)
+              added.push(track)
+            }
+            tracks.value = [...added, ...tracks.value]
+            say(`Added ${added.length} ${added.length === 1 ? 'track' : 'tracks'}`)
+          }
+
+          const onDrop = (event) => { hot.value = false; onFiles(event.dataTransfer && event.dataTransfer.files) }
+
+          /* --- playback --- */
+
+          function ensureGraph() {
+            if (ctx) return
+            const Ctx = window.AudioContext || window.webkitAudioContext
+            if (!Ctx) return
+            try {
+              ctx = new Ctx()
+              analyser = ctx.createAnalyser()
+              analyser.fftSize = 128
+              analyser.smoothingTimeConstant = 0.82
+              ctx.createMediaElementSource(audio).connect(analyser)
+              analyser.connect(ctx.destination)
+              bins = new Uint8Array(analyser.frequencyBinCount)
+            } catch { analyser = null }
+          }
+
+          function drawScope() {
+            const el = scope.value
+            if (!el) return
+            const dpr = window.devicePixelRatio || 1
+            const w = el.clientWidth, h = el.clientHeight
+            if (!w || !h) return
+            if (el.width !== w * dpr) { el.width = w * dpr; el.height = h * dpr }
+            const g = el.getContext('2d')
+            g.setTransform(dpr, 0, 0, dpr, 0, 0)
+            g.clearRect(0, 0, w, h)
+            const count = 22, gap = 2
+            const barW = (w - gap * (count - 1)) / count
+            const grad = g.createLinearGradient(0, 0, w, 0)
+            grad.addColorStop(0, '#3d3e44')
+            grad.addColorStop(1, '#9a9ba1')
+            g.fillStyle = grad
+            for (let i = 0; i < count; i++) {
+              const v = bins ? bins[Math.floor((i / count) * bins.length)] / 255 : 0
+              const barH = Math.max(2, v * h)
+              const x = i * (barW + gap), y = (h - barH) / 2
+              g.beginPath()
+              if (g.roundRect) g.roundRect(x, y, barW, barH, barW / 2)
+              else g.rect(x, y, barW, barH)
+              g.fill()
+            }
+          }
+
+          function tick() {
+            if (analyser && bins) {
+              analyser.getByteFrequencyData(bins)
+              let sum = 0
+              for (let i = 0; i < bins.length; i++) sum += bins[i]
+              level.value = sum / bins.length / 255
+            }
+            position.value = audio.currentTime
+            drawScope()
+            raf = requestAnimationFrame(tick)
+          }
+
+          audio.addEventListener('loadedmetadata', () => {
+            duration.value = Number.isFinite(audio.duration) ? audio.duration : 0
+          })
+          audio.addEventListener('play', () => { playing.value = true; if (!raf) raf = requestAnimationFrame(tick) })
+          audio.addEventListener('pause', () => { playing.value = false })
+          audio.addEventListener('ended', () => next(true))
+
+          async function playAt(i) {
+            const track = visible.value[i]
+            if (!track) return
+            ensureGraph()
+            if (ctx && ctx.state === 'suspended') await ctx.resume()
+            index.value = i
+            currentId.value = track.id
+            const url = urls.get(track.id)
+            if (!url) { say('That file is no longer available'); return }
+            if (audio.src !== url) audio.src = url
+            audio.volume = volume.value
+            try { await audio.play() } catch { playing.value = false }
+          }
+
+          function toggle() {
+            if (!current.value) { if (visible.value.length) playAt(0); return }
+            if (!audio.paused) { audio.pause(); return }
+            // Resume where we left off; only reload if the element lost its source.
+            if (audio.src) audio.play().catch(() => { playing.value = false })
+            else playAt(Math.max(index.value, 0))
+          }
+
+          function next(auto = false) {
+            const i = nextIndex(visible.value.length, index.value, {
+              shuffle: shuffle.value,
+              repeat: auto ? repeat.value : repeat.value === 'one' ? 'off' : repeat.value,
+            })
+            if (i === null) { audio.pause(); return }
+            if (i === index.value && repeat.value === 'one') { audio.currentTime = 0; audio.play(); return }
+            playAt(i)
+          }
+
+          function prev() {
+            if (audio.currentTime > 3) { audio.currentTime = 0; return }
+            if (!visible.value.length) return
+            playAt(index.value - 1 < 0 ? visible.value.length - 1 : index.value - 1)
+          }
+
+          function onSeek(event) {
+            if (!duration.value) return
+            const box = event.currentTarget.getBoundingClientRect()
+            const ratio = Math.min(Math.max((event.clientX - box.left) / box.width, 0), 1)
+            audio.currentTime = ratio * duration.value
+            position.value = audio.currentTime
+          }
+
+          function setVolume(value) {
+            volume.value = Math.min(Math.max(Number(value), 0), 1)
+            audio.volume = volume.value
+          }
+
+          const cycleRepeat = () => {
+            repeat.value = repeat.value === 'off' ? 'all' : repeat.value === 'all' ? 'one' : 'off'
+          }
+
+          /* --- library edits --- */
+
+          async function persist(track) { await db.putTrack(track) }
+
+          function openEditor(t) {
+            editing.value = t
+            draft.title = t.title; draft.artist = t.artist; draft.album = t.album; draft.tags = t.tags.join(', ')
+          }
+
+          async function saveEdit() {
+            const i = tracks.value.findIndex((t) => t.id === editing.value.id)
+            if (i > -1) {
+              const updated = { ...tracks.value[i], title: draft.title.trim() || 'Untitled',
+                artist: draft.artist.trim() || 'Unknown artist', album: draft.album.trim() || 'Imported',
+                tags: parseTags(draft.tags) }
+              tracks.value.splice(i, 1, updated)
+              await persist(updated)
+            }
+            editing.value = null
+            say('Details saved')
+          }
+
+          async function toggleFavorite(id) {
+            const i = tracks.value.findIndex((t) => t.id === id)
+            if (i === -1) return
+            const updated = { ...tracks.value[i], favorite: !tracks.value[i].favorite }
+            tracks.value.splice(i, 1, updated)
+            await persist(updated)
+          }
+
+          async function removeTrack(id) {
+            if (current.value && current.value.id === id) {
+              audio.pause(); audio.removeAttribute('src'); index.value = -1; currentId.value = null
+            }
+            tracks.value = tracks.value.filter((t) => t.id !== id)
+            playlists.value = playlists.value.map((p) => ({ ...p, trackIds: p.trackIds.filter((x) => x !== id) }))
+            if (urls.has(id)) { URL.revokeObjectURL(urls.get(id)); urls.delete(id) }
+            await db.delTrack(id); await db.delFile(id); await db.putMeta('playlists', playlists.value)
+            say('Removed from library')
+          }
+
+          async function submitPlaylist() {
+            const name = newName.value.trim()
+            newName.value = ''
+            naming.value = false
+            if (!name) return
+            playlists.value = [...playlists.value, { id: 'p_' + Date.now().toString(36), name, trackIds: [] }]
+            await db.putMeta('playlists', playlists.value)
+            say(`Created ${name}`)
+          }
+
+          async function addToPlaylist(playlistId) {
+            const track = adding.value
+            adding.value = null
+            const p = playlists.value.find((x) => x.id === playlistId)
+            if (!p) return
+            if (p.trackIds.includes(track.id)) { say(`Already in ${p.name}`); return }
+            p.trackIds = [...p.trackIds, track.id]
+            playlists.value = [...playlists.value]
+            await db.putMeta('playlists', playlists.value)
+            say(`Added to ${p.name}`)
+          }
+
+          async function removeFromPlaylist(trackId) {
+            const p = playlists.value.find((x) => x.id === collection.value)
+            if (!p) return
+            p.trackIds = p.trackIds.filter((x) => x !== trackId)
+            playlists.value = [...playlists.value]
+            await db.putMeta('playlists', playlists.value)
+            say(`Removed from ${p.name}`)
+          }
+
+          /* --- keep the playing row selected when the view changes --- */
+          // Re-point the queue cursor when the visible list changes, so the
+          // playing track keeps its place across searches and filters.
+          watch(visible, (list) => {
+            if (!currentId.value) return
+            index.value = list.findIndex((t) => t.id === currentId.value)
+          })
+
+          watch(naming, async (on) => { if (on) { await nextTick(); nameInput.value && nameInput.value.focus() } })
+
+          onMounted(async () => {
+            const saved = await db.allTracks()
+            const restored = []
+            for (const t of saved) {
+              const blob = await db.getFile(t.id)
+              if (!blob) continue
+              urls.set(t.id, URL.createObjectURL(blob))
+              restored.push(t)
+            }
+            tracks.value = restored
+            playlists.value = (await db.getMeta('playlists')) || []
+            if (restored.length) say(`Restored ${restored.length} ${restored.length === 1 ? 'track' : 'tracks'}`)
+            drawScope()
+
+            window.addEventListener('keydown', (event) => {
+              if (event.target.matches('input, textarea')) return
+              if (event.code === 'Space') { event.preventDefault(); toggle() }
+              if (event.code === 'ArrowRight') next()
+              if (event.code === 'ArrowLeft') prev()
+            })
+          })
+
+          return {
+            tracks, playlists, visible, tagList, favoriteCount, isPlaylist,
+            query, collection, tag, sort, sortLabels, heading, hot, toast,
+            naming, newName, nameInput, editing, adding, draft, scope,
+            current, currentId, playing, position, duration, progress, volume, shuffle, repeat, repeatLabel, level,
+            time, cover, initial,
+            onFiles, onDrop, playAt, toggle, next, prev, onSeek, setVolume, cycleRepeat,
+            openEditor, saveEdit, toggleFavorite, removeTrack,
+            submitPlaylist, addToPlaylist, removeFromPlaylist,
+          }
+        },
+      }).mount('#app')
+    </script>
+  </body>
+</html>

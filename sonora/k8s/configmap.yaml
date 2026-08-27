@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sonora-config
+  labels:
+    app.kubernetes.io/name: sonora
+data:
+  # Where the SPA sends its REST calls. The ingress routes /api to the backend,
+  # so the browser never needs a cross-origin request.
+  API_BASE_URL: "/api"
+  LOG_LEVEL: "info"

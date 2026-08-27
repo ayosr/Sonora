@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sonora
+  annotations:
+    # Audio uploads are large, so raise the default body limit.
+    nginx.ingress.kubernetes.io/proxy-body-size: "64m"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: ["sonora.example.com"]
+      secretName: sonora-tls
+  rules:
+    - host: sonora.example.com
+      http:
+        paths:
+          # Same origin for the API, which keeps session cookies simple.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: sonora-api
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sonora-web
+                port:
+                  number: 80

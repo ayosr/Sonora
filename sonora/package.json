@@ -1,0 +1,29 @@
+{
+  "name": "sonora",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first music library: import audio files, organize them, play them.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "coverage": "vitest run --coverage",
+    "docker:build": "docker build -t sonora:local .",
+    "docker:run": "docker run --rm -p 8080:8080 sonora:local"
+  },
+  "dependencies": {
+    "vue": "^3.4.27"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "@vitest/coverage-v8": "^1.6.0",
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^24.1.0",
+    "vite": "^5.2.11",
+    "vitest": "^1.6.0"
+  }
+}
