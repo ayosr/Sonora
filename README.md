@@ -143,7 +143,7 @@ simple. `proxy-body-size` is raised to 64m because audio uploads are large.
 Set the image reference in `k8s/deployment.yaml` before applying.
 
 ## Known limits
-
++ Playlists do not work yet; folder icon not appearing.
 + Metadata comes from the filename, not from ID3 tags. Reading real tags needs a
   parser such as `music-metadata-browser`.
 + Browser storage quota caps the library size. Large collections need the
