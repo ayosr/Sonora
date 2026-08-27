@@ -8,6 +8,8 @@ reload with no server involved.
 The REST layer, session handling, container image and Kubernetes manifests are
 all wired up so the same app can run against a real backend.
 
+<img width="1140" height="771" alt="image" src="https://github.com/user-attachments/assets/eb10e40a-e257-4e36-b309-34b24b3c55bf" />
+
 ---
 
 ## Run it
